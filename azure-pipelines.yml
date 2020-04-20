@@ -1,0 +1,59 @@
+
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+# demo 
+trigger:
+- master
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: |
+   docker build -t hellofargate ./HelloFargate
+   
+  displayName: 'Command Line Script'
+- task: SlackPoster@2
+  inputs:
+    UserName: 'Azure to AWS'
+    Message: '$(Build.DefinitionName) Started. \n Build.BuildNumber: $(Build.BuildNumber). \n Build.BuildId: $(Build.BuildId). \n Build.QueuedBy: $(Build.QueuedBy)'
+    ApiToken: '$(slacktoken)'
+    Channel: 'devops-traceablity'
+    IconUrl: 'devops-traceablity'
+    NeverFails: false
+- task: ECRPushImage@1
+  inputs:
+    awsCredentials: 'Azureto AWS'
+    regionName: 'us-east-1'
+    imageSource: 'imagename'
+    sourceImageName: 'hellofargate'
+    repositoryName: 'devopsdemolatest'
+- task: AWSCLI@1
+  inputs:
+    awsCredentials: 'Azureto AWS'
+    regionName: 'us-east-1'
+    awsCommand: 'ecs'
+    awsSubCommand: 'update-service'
+    awsArguments: '--cluster hellofargate --service hellofargateservice --force-new-deployment'
+- task: SlackPoster@2
+  inputs:
+    UserName: 'Azure to AWS'
+    Message: '$(Build.DefinitionName) completed'
+    ApiToken: '$(slacktoken)'
+    Channel: 'devops-traceablity'
+    IconUrl: 'devops-traceablity'
+    NeverFails: false
+- task: kiuwan-baseline-analysis-task@2
+  inputs:
+    kiuwanConnection: 'NewKiuwan'
+    projectnameselector: 'appname'
+    customappname: 'Sample'
+    analysislabel: 'ECSFragateAnalysis'
+    includeinsight: true
+    uploadsnippets: true
+    uploadfiles: false
+    skipclones: false
+    overridedotkiuwan: false
+    overrideappmodel: false
+    dbanalysis: false
